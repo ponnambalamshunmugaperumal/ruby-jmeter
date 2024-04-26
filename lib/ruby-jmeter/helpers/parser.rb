@@ -36,10 +36,11 @@ module RubyJmeter
     end
 
     def parse_uri(uri)
-      URI.parse(URI::encode(uri)).scheme.nil? ?
-        URI.parse(URI::encode("http://#{uri}")) :
-        URI.parse(URI::encode(uri))
-    end
+  encoded_uri = URI.encode_www_form_component(uri)
+  URI.parse(encoded_uri).scheme.nil? ?
+    URI.parse("http://#{encoded_uri}") :
+    URI.parse(encoded_uri)
+end
 
     def fill_in(params)
       params[:update_at_xpath] ||= []
