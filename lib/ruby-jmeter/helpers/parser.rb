@@ -1,6 +1,5 @@
 module RubyJmeter
   module Parser
-
     def parse_http_request(params)
       if params[:raw_path]
         params[:path] = params[:url]
@@ -14,20 +13,18 @@ module RubyJmeter
           params[:fill_in][name] << value
         end
       end
-
       fill_in(params) if params.has_key?(:fill_in)
       raw_body(params) if params.has_key?(:raw_body)
       files(params) if params.has_key?(:files)
     end
-
     def parse_url(params)
       return if params[:url].empty?
       if params[:url] =~ /https?:\/\/\$/ || params[:url][0] == '$'
         params[:path] = params[:url] # special case for named expressions
       else
         uri = parse_uri(params[:url])
-        params[:port]     ||= uri.port unless URI.parse(URI::encode(params[:url])).scheme.nil?
-        params[:protocol] ||= uri.scheme unless URI.parse(URI::encode(params[:url])).scheme.nil?
+        params[:port]     ||= uri.port unless URI.parse(URI::Parser.new.escape(params[:url])).scheme.nil?
+        params[:protocol] ||= uri.scheme unless URI.parse(URI::Parser.new.escape(params[:url])).scheme.nil?
         params[:domain]   ||= uri.host
         params[:path]     ||= uri.path && URI::decode(uri.path)
         params[:params]   ||= uri.query && URI::decode(uri.query)
@@ -36,11 +33,10 @@ module RubyJmeter
     end
 
     def parse_uri(uri)
-  encoded_uri = URI.encode_www_form_component(uri)
-  URI.parse(encoded_uri).scheme.nil? ?
-    URI.parse("http://#{encoded_uri}") :
-    URI.parse(encoded_uri)
-end
+        URI.parse(URI::Parser.new.escape(uri)).scheme.nil? ?
+        URI.parse(URI::Parser.new.escape("http://#{uri}")) :
+        URI.parse(URI::Parser.new.escape(uri))
+    end
 
     def fill_in(params)
       params[:update_at_xpath] ||= []
@@ -63,7 +59,6 @@ end
         end
       params.delete(:fill_in)
     end
-
     def raw_body(params)
       params[:update_at_xpath] ||= []
       params[:update_at_xpath] << {
@@ -72,7 +67,6 @@ end
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           EOF
       }
-
       params[:update_at_xpath] << {
         :xpath => '//collectionProp',
         :value => Nokogiri::XML(<<-EOF.strip_heredoc).children
@@ -85,7 +79,6 @@ end
       }
       params.delete(:raw_body)
     end
-
     def files(params)
       files = params.delete(:files)
       return if files.empty?
@@ -108,7 +101,6 @@ end
         :value => x.doc.root
       }
     end
-
     def parse_test_type(params)
       case params.keys.first.to_s
       when 'contains'
@@ -131,6 +123,5 @@ end
         2
       end
     end
-
   end
 end
