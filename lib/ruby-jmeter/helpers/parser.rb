@@ -19,20 +19,22 @@ module RubyJmeter
       raw_body(params) if params.has_key?(:raw_body)
       files(params) if params.has_key?(:files)
     end
-    def parse_url(params)
-      return if params[:url].empty?
-      if params[:url] =~ /https?:\/\/\$/ || params[:url][0] == '$'
-        params[:path] = params[:url] # special case for named expressions
-      else
-        uri = parse_uri(params[:url])
-        params[:port]     ||= uri.port unless URI.parse(URI::Parser.new.escape(params[:url])).scheme.nil?
-        params[:protocol] ||= uri.scheme unless URI.parse(URI::Parser.new.escape(params[:url])).scheme.nil?
-        params[:domain]   ||= uri.host
-        params[:path]     ||= uri.path && URI::decode(uri.path)
-        params[:params]   ||= uri.query && URI::decode(uri.query)
-      end
-      params.delete(:url)
-    end
+
+ def parse_url(params)
+  return if params[:url].empty?
+   if params[:url] =~ /\Ahttps?:\/\/\$/ || params[:url][0] == '$'
+    params[:path] = params[:url] # special case for named expressions
+  else
+    uri = parse_uri(params[:url])
+    params[:port]     ||= uri.port
+    params[:protocol] ||= uri.scheme
+    params[:domain]   ||= uri.host
+    params[:path]     ||= uri.path && URI.decode_www_form_component(uri.path)
+    params[:params]   ||= uri.query && URI.decode_www_form_component(uri.query)
+  end
+
+  params.delete(:url)
+end
 
     def parse_uri(uri)
         URI.parse(URI::Parser.new.escape(uri)).scheme.nil? ?
