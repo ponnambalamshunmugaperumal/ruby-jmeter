@@ -1,5 +1,7 @@
 module RubyJmeter
   module Parser
+
+    
     def parse_http_request(params)
       if params[:raw_path]
         params[:path] = params[:url]
