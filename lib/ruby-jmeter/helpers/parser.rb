@@ -1,6 +1,7 @@
 module RubyJmeter
   module Parser
 
+    
     def parse_http_request(params)
       if params[:raw_path]
         params[:path] = params[:url]
@@ -14,31 +15,31 @@ module RubyJmeter
           params[:fill_in][name] << value
         end
       end
-
       fill_in(params) if params.has_key?(:fill_in)
       raw_body(params) if params.has_key?(:raw_body)
       files(params) if params.has_key?(:files)
     end
 
-    def parse_url(params)
-      return if params[:url].empty?
-      if params[:url] =~ /https?:\/\/\$/ || params[:url][0] == '$'
-        params[:path] = params[:url] # special case for named expressions
-      else
-        uri = parse_uri(params[:url])
-        params[:port]     ||= uri.port unless URI.parse(URI::encode(params[:url])).scheme.nil?
-        params[:protocol] ||= uri.scheme unless URI.parse(URI::encode(params[:url])).scheme.nil?
-        params[:domain]   ||= uri.host
-        params[:path]     ||= uri.path && URI::decode(uri.path)
-        params[:params]   ||= uri.query && URI::decode(uri.query)
-      end
-      params.delete(:url)
-    end
+ def parse_url(params)
+  return if params[:url].empty?
+   if params[:url] =~ /\Ahttps?:\/\/\$/ || params[:url][0] == '$'
+    params[:path] = params[:url] # special case for named expressions
+  else
+    uri = parse_uri(params[:url])
+    params[:port]     ||= uri.port
+    params[:protocol] ||= uri.scheme
+    params[:domain]   ||= uri.host
+    params[:path]     ||= uri.path && URI.decode_www_form_component(uri.path)
+    params[:params]   ||= uri.query && URI.decode_www_form_component(uri.query)
+  end
+
+  params.delete(:url)
+end
 
     def parse_uri(uri)
-      URI.parse(URI::encode(uri)).scheme.nil? ?
-        URI.parse(URI::encode("http://#{uri}")) :
-        URI.parse(URI::encode(uri))
+        URI.parse(URI::Parser.new.escape(uri)).scheme.nil? ?
+        URI.parse(URI::Parser.new.escape("http://#{uri}")) :
+        URI.parse(URI::Parser.new.escape(uri))
     end
 
     def fill_in(params)
@@ -62,7 +63,6 @@ module RubyJmeter
         end
       params.delete(:fill_in)
     end
-
     def raw_body(params)
       params[:update_at_xpath] ||= []
       params[:update_at_xpath] << {
@@ -71,7 +71,6 @@ module RubyJmeter
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           EOF
       }
-
       params[:update_at_xpath] << {
         :xpath => '//collectionProp',
         :value => Nokogiri::XML(<<-EOF.strip_heredoc).children
@@ -84,7 +83,6 @@ module RubyJmeter
       }
       params.delete(:raw_body)
     end
-
     def files(params)
       files = params.delete(:files)
       return if files.empty?
@@ -107,7 +105,6 @@ module RubyJmeter
         :value => x.doc.root
       }
     end
-
     def parse_test_type(params)
       case params.keys.first.to_s
       when 'contains'
@@ -130,6 +127,5 @@ module RubyJmeter
         2
       end
     end
-
   end
 end
